@@ -84,7 +84,7 @@ float intensity(float note, int octave)
 }
 
 float synth(float phase, float note) {
-  return sine(phase, note);
+  return pow(2,(sine(phase, note)));
 }
 
 float sample_val(float note, unsigned int phase)
@@ -92,16 +92,17 @@ float sample_val(float note, unsigned int phase)
   note = fmod(note, 12);
 
   if (phase % 1000 == 0) {
-    printf("%.2f, %.2f, %.2f, %.2f\n", 
-           intensity(note, 0), intensity(note, 1),
-           intensity(note, 2), intensity(note, 3));
+    printf("%.2f x %.2f, %.2f x %.2f, %.2f x %.2f, %.2f x %.2f\n", 
+           intensity(note, 0), freq(note + 12*1),
+           intensity(note, 1), freq(note + 12*2),
+           intensity(note, 2), freq(note + 12*3),
+           intensity(note, 3), freq(note + 12*4));
   }
 
-  return
-    synth(phase, freq(note + 12*1)) * intensity(note, 0) +
-    synth(phase, freq(note + 12*2)) * intensity(note, 1) +
-    synth(phase, freq(note + 12*3)) * intensity(note, 2) +
-    synth(phase, freq(note + 12*4)) * intensity(note, 3);
+  return log2(synth(phase, freq(note + 12*1)) * intensity(note, 0) +
+              synth(phase, freq(note + 12*2)) * intensity(note, 1) +
+              synth(phase, freq(note + 12*3)) * intensity(note, 2) +
+              synth(phase, freq(note + 12*4)) * intensity(note, 3));
 }
 
 /* This routine will be called by the PortAudio engine when audio is needed.
@@ -234,7 +235,6 @@ int main(void)
       
     }
 
- done:
     err = Pa_StopStream( stream );
     if( err != paNoError ) goto error;
 
