@@ -40,7 +40,8 @@
 #include "portaudio.h"
 #include "definitions.h"
 
-
+#define DECAY (100000)
+#define SWITCH_PERIOD (1000)
 #define NUM_SECONDS   (2)
 #define SAMPLE_RATE   (44100)
 #define FRAMES_PER_BUFFER  (64)
@@ -59,6 +60,9 @@ paTestData;
 #define sine(i,F) ((float) sin( (((double)(i)*(double)(F))/SAMPLE_RATE) * M_PI * 2. ))
 
 int target_note;
+int current_note;
+int switch_time;
+int note_time;
 
 float freq(float note)
 {
@@ -82,6 +86,10 @@ float intensity(float note, int octave)
   return 0; // never reached
 }
 
+float synth(float phase, float note) {
+  return sine(phase, note);
+}
+
 float sample_val(float note, unsigned int phase)
 {
   note = fmod(note, 12);
@@ -93,10 +101,10 @@ float sample_val(float note, unsigned int phase)
   }
 
   return
-    sine(phase, freq(note + 12*3)) * intensity(note, 0) +
-    sine(phase, freq(note + 12*4)) * intensity(note, 1) +
-    sine(phase, freq(note + 12*5)) * intensity(note, 2) +
-    sine(phase, freq(note + 12*6)) * intensity(note, 3);
+    synth(phase, freq(note + 12*1)) * intensity(note, 0) +
+    synth(phase, freq(note + 12*2)) * intensity(note, 1) +
+    synth(phase, freq(note + 12*3)) * intensity(note, 2) +
+    synth(phase, freq(note + 12*4)) * intensity(note, 3);
 }
 
 /* This routine will be called by the PortAudio engine when audio is needed.
@@ -117,9 +125,40 @@ static int patestCallback( const void *inputBuffer, void *outputBuffer,
     (void) statusFlags;
     (void) inputBuffer;
 
+    if (data->phase == 0) {
+      current_note = target_note;
+      switch_time = 0;
+      note_time = 0;
+    }
+
     for( i=0; i<framesPerBuffer; i++ )
     {
-      *out++ = sample_val(target_note, data->phase);
+      float current = sample_val(current_note, data->phase);
+      float target = sample_val(target_note, data->phase);
+
+      float target_amt = 1;
+
+      if (current_note != target_note) {        
+        switch_time++;
+
+
+        if (switch_time > SWITCH_PERIOD) {
+          current_note = target_note;
+          switch_time = 0;
+        }
+
+        target_amt = (float)(switch_time)/SWITCH_PERIOD;
+      }
+      else {
+        note_time++;
+      }
+
+      float amplitude = 1-((float)note_time/DECAY);
+      if (amplitude < 0) {
+        amplitude = 0;
+      }
+
+      *out++ = (1-target_amt)*current + target_amt*target*amplitude;
       data->phase += 1;
     }
 
@@ -188,6 +227,7 @@ int main(void)
 
 
     while(1) {
+      note_time = 0;
       switch (getc(stdin)) {
       case 'A':
         target_note = 69;
