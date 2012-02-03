@@ -1,0 +1,3 @@
+
+# install port audio and then:
+gcc -o octaveless octaveless.c -lportaudio && ./octaveless
