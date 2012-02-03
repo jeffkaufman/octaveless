@@ -72,13 +72,17 @@ float intensity(float note, int octave)
 
   switch(octave) {
   case 0:
-    return 0.00 + 0.02*bass_n;
+    return 0.00 + 0.01*bass_n;
   case 1:
-    return 0.24 + 0.02*bass_n;
+    return 0.12 + 0.01*bass_n;
   case 2:
-    return 0.54 - 0.02*bass_n;
+    return 0.24 + 0.01*bass_n;
   case 3:
-    return 0.22 - 0.02*bass_n;
+    return 0.32 - 0.01*bass_n;
+  case 4:
+    return 0.22 - 0.0*bass_n;
+  case 5:
+    return 0.10 - 0.01*bass_n;
   }
   return 0; // never reached
 }
@@ -92,17 +96,22 @@ float sample_val(float note, unsigned int phase)
   note = fmod(note, 12);
 
   if (phase % 1000 == 0) {
-    printf("%.2f x %.2f, %.2f x %.2f, %.2f x %.2f, %.2f x %.2f\n", 
-           intensity(note, 0), freq(note + 12*1),
-           intensity(note, 1), freq(note + 12*2),
-           intensity(note, 2), freq(note + 12*3),
-           intensity(note, 3), freq(note + 12*4));
+    printf("%.2f x %.2f, %.2f x %.2f, %.2f x %.2f, %.2f x %.2f, "
+           "%.2f x %.2f, %.2f x %.2f\n", 
+           intensity(note, 0), freq(note + 12*0),
+           intensity(note, 1), freq(note + 12*1),
+           intensity(note, 2), freq(note + 12*2),
+           intensity(note, 3), freq(note + 12*3),
+           intensity(note, 4), freq(note + 12*4),
+           intensity(note, 5), freq(note + 12*5));
   }
 
-  return log2(synth(phase, freq(note + 12*1)) * intensity(note, 0) +
-              synth(phase, freq(note + 12*2)) * intensity(note, 1) +
-              synth(phase, freq(note + 12*3)) * intensity(note, 2) +
-              synth(phase, freq(note + 12*4)) * intensity(note, 3));
+  return log2(synth(phase, freq(note + 12*0)) * intensity(note, 0) +
+              synth(phase, freq(note + 12*1)) * intensity(note, 1) +
+              synth(phase, freq(note + 12*2)) * intensity(note, 2) +
+              synth(phase, freq(note + 12*3)) * intensity(note, 3) +
+              synth(phase, freq(note + 12*4)) * intensity(note, 4) +
+              synth(phase, freq(note + 12*5)) * intensity(note, 5));
 }
 
 /* This routine will be called by the PortAudio engine when audio is needed.

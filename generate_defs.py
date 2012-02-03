@@ -40,8 +40,18 @@ def fraction(bass_n, octave):
 
     return root
 
+def fraction(bass_n, octave):
+    root = [0.00, 0.12, 0.24, 0.32, 0.22, 0.10][octave]
+
+    if octave in [0,1,2]:
+        root += 0.01*bass_n
+    else:
+        root -= 0.01*bass_n
+
+    return root
+
 for bass_n, bass in enumerate(BASSES):
-    s = sum(fraction(bass_n, octave) for octave in [0,1,2,3])
+    s = sum(fraction(bass_n, octave) for octave in [0,1,2,3,4,5])
     print bass, s
 
 def start():
