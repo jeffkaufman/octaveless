@@ -36,6 +36,7 @@
  */
 #include <stdio.h>
 #include <math.h>
+#include <termios.h>
 #include "portaudio.h"
 #include "definitions.h"
 
@@ -48,17 +49,55 @@
 #define M_PI  (3.14159265)
 #endif
 
-#define TABLE_SIZE   (200)
 typedef struct
 {
   unsigned int phase;
   char message[20];
-  float wavelength; /* in samples */
 }
 paTestData;
 
-#define sine(i,F) ((float) sin( ((double)i/(double)F) * M_PI * 2. ))
+#define sine(i,F) ((float) sin( (((double)(i)*(double)(F))/SAMPLE_RATE) * M_PI * 2. ))
 
+int target_note;
+
+float freq(float note)
+{
+  return 440*(pow(2, (note-69.0)/12));
+}
+
+float intensity(float note, int octave)
+{
+  float bass_n = fmod(note, 12);
+
+  switch(octave) {
+  case 0:
+    return 0.00 + 0.02*bass_n;
+  case 1:
+    return 0.24 + 0.02*bass_n;
+  case 2:
+    return 0.54 - 0.02*bass_n;
+  case 3:
+    return 0.22 - 0.02*bass_n;
+  }
+  return 0; // never reached
+}
+
+float sample_val(float note, unsigned int phase)
+{
+  note = fmod(note, 12);
+
+  if (phase % 1000 == 0) {
+    printf("%.2f, %.2f, %.2f, %.2f\n", 
+           intensity(note, 0), intensity(note, 1),
+           intensity(note, 2), intensity(note, 3));
+  }
+
+  return
+    sine(phase, freq(note + 12*3)) * intensity(note, 0) +
+    sine(phase, freq(note + 12*4)) * intensity(note, 1) +
+    sine(phase, freq(note + 12*5)) * intensity(note, 2) +
+    sine(phase, freq(note + 12*6)) * intensity(note, 3);
+}
 
 /* This routine will be called by the PortAudio engine when audio is needed.
 ** It may called at interrupt level on some machines so don't do anything
@@ -80,11 +119,9 @@ static int patestCallback( const void *inputBuffer, void *outputBuffer,
 
     for( i=0; i<framesPerBuffer; i++ )
     {
-      *out++ = sine(data->phase, data->wavelength);
+      *out++ = sample_val(target_note, data->phase);
       data->phase += 1;
-      data->wavelength += 0.001;
     }
-      
 
     return paContinue;
 }
@@ -106,14 +143,11 @@ int main(void)
     PaStream *stream;
     PaError err;
     paTestData data;
-    int i;
-
 
     printf("PortAudio Test: output sine wave. SR = %d, BufSize = %d\n",
            SAMPLE_RATE, FRAMES_PER_BUFFER);
 
     data.phase = 0;
-    data.wavelength = SAMPLE_RATE/440;
 
     err = Pa_Initialize();
     if( err != paNoError ) goto error;
@@ -146,9 +180,56 @@ int main(void)
     err = Pa_StartStream( stream );
     if( err != paNoError ) goto error;
 
-    printf("Play for %d seconds.\n", NUM_SECONDS );
-    Pa_Sleep( NUM_SECONDS * 1000 );
+    /* set up unbuffered reading */
+    struct termios tio;
+    tcgetattr(1,&tio);
+    tio.c_lflag &=(~ICANON & ~ECHO);
+    tcsetattr(1,TCSANOW,&tio);
 
+
+    while(1) {
+      switch (getc(stdin)) {
+      case 'A':
+        target_note = 69;
+        break;
+      case 'b':
+        target_note = 70;
+        break;
+      case 'B':
+        target_note = 71;
+        break;
+      case 'C':
+        target_note = 72;
+        break;
+      case 'd':
+        target_note = 73;
+        break;
+      case 'D':
+        target_note = 74;
+        break;
+      case 'e':
+        target_note = 75;
+        break;
+      case 'E':
+        target_note = 76;
+        break;
+      case 'F':
+        target_note = 77;
+        break;
+      case 'g':
+        target_note = 78;
+        break;
+      case 'G':
+        target_note = 79;
+        break;
+      case 'a':
+        target_note = 80;
+        break;
+      }
+      
+    }
+
+ done:
     err = Pa_StopStream( stream );
     if( err != paNoError ) goto error;
 

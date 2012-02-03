@@ -56,7 +56,7 @@ def start():
         for octave in [0,1,2,3,4,5,6,7]:
             for bass_n, bass in enumerate(BASSES):
                 note_n = 12 + octave*12 + bass_n
-                w("#define NOTE_%s%s %s\n" % (bass, octave, note_n))
+                w("#define NOTE_%s%s NOTE_%s\n" % (bass, octave, note_n))
 
 if __name__ == "__main__":
     start()
