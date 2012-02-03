@@ -1,3 +1,7 @@
-
 # install port audio and then:
 gcc -o octaveless octaveless.c -lportaudio && ./octaveless
+
+# Type A b B C d D e E F g G a A b B ... and listen to the sound go around
+# Ctrl+C to quit
+
+# only tested on Mac OS 10.6, but should work anywhere portaudio does
