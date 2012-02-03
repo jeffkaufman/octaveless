@@ -5,3 +5,18 @@ gcc -o octaveless octaveless.c -lportaudio && ./octaveless
 # Ctrl+C to quit
 
 # only tested on Mac OS 10.6, but should work anywhere portaudio does
+
+Example sounds:
+
+  http://www.jefftk.com/octaveless/A.mp3
+  http://www.jefftk.com/octaveless/Bb.mp3
+  http://www.jefftk.com/octaveless/B.mp3
+  http://www.jefftk.com/octaveless/C.mp3
+  http://www.jefftk.com/octaveless/Db.mp3
+  http://www.jefftk.com/octaveless/D.mp3
+  http://www.jefftk.com/octaveless/Eb.mp3
+  http://www.jefftk.com/octaveless/E.mp3
+  http://www.jefftk.com/octaveless/F.mp3
+  http://www.jefftk.com/octaveless/Gb.mp3
+  http://www.jefftk.com/octaveless/G.mp3
+  http://www.jefftk.com/octaveless/Ab.mp3
