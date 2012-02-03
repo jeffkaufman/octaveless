@@ -80,7 +80,7 @@ float intensity(float note, int octave)
   case 3:
     return 0.32 - 0.01*bass_n;
   case 4:
-    return 0.22 - 0.0*bass_n;
+    return 0.22 - 0.01*bass_n;
   case 5:
     return 0.10 - 0.01*bass_n;
   }
