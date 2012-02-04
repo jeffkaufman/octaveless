@@ -154,7 +154,9 @@ float sample_combined(paTestData *data) {
   int i;
   float sum = 0;
   for (i = 0 ; i < 12 ; i++) {
-    sum += sample_val(i, data->phase) * data->amplitudes[i];
+    if (data->amplitudes[i] > 0.0001) {
+      sum += sample_val(i, data->phase) * data->amplitudes[i];
+    }
     
     if (data->states[i] == ATTACK) {
       data->amplitudes[i] += ATTACK_RATE;
