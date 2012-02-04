@@ -30,15 +30,8 @@ increments:
 
 """
 
-def fraction(bass_n, octave):
-    root = [0.00, 0.24, 0.54, 0.22][octave]
-
-    if octave in [0,1]:
-        root += 0.02*bass_n
-    else:
-        root -= 0.02*bass_n
-
-    return root
+def freq(note):
+    return 440*(2**((note-69.0)/12));
 
 def fraction(bass_n, octave):
     root = [0.00, 0.12, 0.24, 0.32, 0.22, 0.10][octave]
@@ -48,11 +41,24 @@ def fraction(bass_n, octave):
     else:
         root -= 0.01*bass_n
 
+    if root < 0:
+        root = 0    
+
     return root
 
+'''
+for bass in BASSES:
+    print bass,
+print
+for octave in [0,1,2,3,4,5]:
+    for bass_n, bass in enumerate(BASSES):
+        print fraction(bass_n, octave),
+    print
+'''
+
 for bass_n, bass in enumerate(BASSES):
-    s = sum(fraction(bass_n, octave) for octave in [0,1,2,3,4,5])
-    print bass, s
+    for octave in [0,1,2,3,4,5]:
+        print bass, freq(bass_n+12*octave), fraction(bass_n, octave)
 
 def start():
     with open(OUT, "w") as outf:

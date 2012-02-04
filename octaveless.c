@@ -40,8 +40,9 @@
 #include "portaudio.h"
 #include "definitions.h"
 
-#define DECAY (100000)
-#define SWITCH_PERIOD (1000)
+#define ATTACK_RATE (0.001)
+#define DECAY_RATE (0.0001)
+
 #define NUM_SECONDS   (2)
 #define SAMPLE_RATE   (44100)
 #define FRAMES_PER_BUFFER  (64)
@@ -50,25 +51,29 @@
 #define M_PI  (3.14159265)
 #endif
 
+#define DECAY 0
+#define ATTACK 1
+
+
 typedef struct
 {
   unsigned int phase;
   char message[20];
+  char states[12];
+  float amplitudes[12];
 }
 paTestData;
 
 #define sine(i,F) ((float) sin( (((double)(i)*(double)(F))/SAMPLE_RATE) * M_PI * 2. ))
-
-int target_note;
 
 float freq(float note)
 {
   return 440*(pow(2, (note-69.0)/12));
 }
 
-float intensity(float note, int octave)
+float intensity(int note, int octave)
 {
-  float bass_n = fmod(note, 12);
+  int bass_n = note % 12;
 
   switch(octave) {
   case 0:
@@ -88,30 +93,85 @@ float intensity(float note, int octave)
 }
 
 float synth(float phase, float note) {
-  return pow(2,(sine(phase, note)));
+  return sine(phase, note);
 }
 
-float sample_val(float note, unsigned int phase)
+float sample_val(int note, unsigned int phase)
 {
-  note = fmod(note, 12);
 
-  if (phase % 1000 == 0) {
-    printf("%.2f x %.2f, %.2f x %.2f, %.2f x %.2f, %.2f x %.2f, "
-           "%.2f x %.2f, %.2f x %.2f\n", 
-           intensity(note, 0), freq(note + 12*0),
-           intensity(note, 1), freq(note + 12*1),
-           intensity(note, 2), freq(note + 12*2),
-           intensity(note, 3), freq(note + 12*3),
-           intensity(note, 4), freq(note + 12*4),
-           intensity(note, 5), freq(note + 12*5));
+  float f;
+
+  // f = freq(note+12);
+
+  switch(note) {
+  case 0:
+    f = NOTE_0;
+    break;
+  case 1:
+    f = NOTE_1;
+    break;
+  case 2:
+    f = NOTE_2;
+    break;
+  case 3:
+    f = NOTE_3;
+    break;
+  case 4:
+    f = NOTE_4;
+    break;
+  case 5:
+    f = NOTE_5;
+    break;
+  case 6:
+    f = NOTE_6;
+    break;
+  case 7:
+    f = NOTE_7;
+    break;
+  case 8:
+    f = NOTE_8;
+    break;
+  case 9:
+    f = NOTE_9;
+    break;
+  case 10:
+    f = NOTE_10;
+    break;
+  case 11:
+    f = NOTE_11;
+    break;
   }
 
-  return log2(synth(phase, freq(note + 12*0)) * intensity(note, 0) +
-              synth(phase, freq(note + 12*1)) * intensity(note, 1) +
-              synth(phase, freq(note + 12*2)) * intensity(note, 2) +
-              synth(phase, freq(note + 12*3)) * intensity(note, 3) +
-              synth(phase, freq(note + 12*4)) * intensity(note, 4) +
-              synth(phase, freq(note + 12*5)) * intensity(note, 5));
+  return (synth(phase, f) * intensity(note, 0) +
+          synth(phase, f*2) * intensity(note, 1) +
+          synth(phase, f*4) * intensity(note, 2) +
+          synth(phase, f*8) * intensity(note, 3) +
+          synth(phase, f*16) * intensity(note, 4) +
+          synth(phase, f*32) * intensity(note, 5));
+}
+
+float sample_combined(paTestData *data) {
+  int i;
+  float sum = 0;
+  for (i = 0 ; i < 12 ; i++) {
+    sum += sample_val(i, data->phase) * data->amplitudes[i];
+    
+    if (data->states[i] == ATTACK) {
+      data->amplitudes[i] += ATTACK_RATE;
+      if (data->amplitudes[i] > .9) {
+        // printf("%d: beginning decay, amp=%.5f\n", i, data->amplitudes[i]);
+        data->states[i] = DECAY; 
+      }
+    }
+    else {
+      data->amplitudes[i] -= DECAY_RATE;
+      if (data->amplitudes[i] < 0) { data->amplitudes[i] = 0; }
+    }
+  }
+
+  // sum = synth(data->phase, freq(69));
+
+  return sum;
 }
 
 /* This routine will be called by the PortAudio engine when audio is needed.
@@ -134,7 +194,7 @@ static int patestCallback( const void *inputBuffer, void *outputBuffer,
 
     for( i=0; i<framesPerBuffer; i++ )
     {
-      *out++ = sample_val(target_note, data->phase);
+      *out++ = sample_combined(data);
       data->phase += 1;
     }
 
@@ -158,11 +218,16 @@ int main(void)
     PaStream *stream;
     PaError err;
     paTestData data;
+    int i;
 
     printf("PortAudio Test: output sine wave. SR = %d, BufSize = %d\n",
            SAMPLE_RATE, FRAMES_PER_BUFFER);
 
     data.phase = 0;
+    for (i = 0 ; i < 12 ; i++) {
+      data.amplitudes[i] = 0;
+      data.states[i] = DECAY;
+    }
 
     err = Pa_Initialize();
     if( err != paNoError ) goto error;
@@ -201,47 +266,50 @@ int main(void)
     tio.c_lflag &=(~ICANON & ~ECHO);
     tcsetattr(1,TCSANOW,&tio);
 
-
+    int pressed = -1;
     while(1) {
       switch (getc(stdin)) {
-      case 'A':
-        target_note = 69;
-        break;
-      case 'b':
-        target_note = 70;
-        break;
-      case 'B':
-        target_note = 71;
-        break;
       case 'C':
-        target_note = 72;
+        pressed = 0;
         break;
       case 'd':
-        target_note = 73;
+        pressed = 1;
         break;
       case 'D':
-        target_note = 74;
+        pressed = 2;
         break;
       case 'e':
-        target_note = 75;
+        pressed = 3;
         break;
       case 'E':
-        target_note = 76;
+        pressed = 4;
         break;
       case 'F':
-        target_note = 77;
+        pressed = 5;
         break;
       case 'g':
-        target_note = 78;
+        pressed = 6;
         break;
       case 'G':
-        target_note = 79;
+        pressed = 7;
         break;
       case 'a':
-        target_note = 80;
+        pressed = 8;
+        break;
+      case 'A':
+        pressed = 9;
+        break;
+      case 'b':
+        pressed = 10;
+        break;
+      case 'B':
+        pressed = 11;
         break;
       }
-      
+
+      if (pressed != -1) {
+        data.states[pressed] = ATTACK;
+      }
     }
 
     err = Pa_StopStream( stream );
